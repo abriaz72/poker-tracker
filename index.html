@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Tracker</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #e8e4dc;
+    --text2: #888;
+    --text3: #555;
+    --gold: #c9a84c;
+    --gold2: #a8893e;
+    --green: #4a9e6b;
+    --red: #c45a4a;
+    --blue: #4a7ec4;
+    --font-display: 'Georgia', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; }
+
+  .nav { display: flex; align-items: center; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; overflow-x: auto; }
+  .nav-brand { font-family: var(--font-display); font-size: 0.85rem; color: var(--gold); letter-spacing: 0.15em; text-transform: uppercase; padding: 16px 20px 16px 0; border-right: 1px solid var(--border); margin-right: 20px; white-space: nowrap; }
+  .nav-tab { padding: 16px 14px; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .nav-tab:hover { color: var(--text2); }
+  .nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .main { padding: 24px 20px; max-width: 960px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .section-title { font-family: var(--font-display); font-size: 1rem; color: var(--text); }
+  .section-subtitle { font-size: 0.7rem; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+  .btn { padding: 8px 16px; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); transition: all 0.15s; font-family: var(--font-body); }
+  .btn:hover { background: var(--border); }
+  .btn-gold { border-color: var(--gold2); color: var(--gold); }
+  .btn-gold:hover { background: rgba(201,168,76,0.1); }
+  .btn-sm { padding: 5px 10px; font-size: 0.68rem; }
+
+  .stats-bar { display: flex; gap: 1px; margin-bottom: 24px; background: var(--border); flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 100px; background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .stat-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+  .stat-value { font-family: var(--font-display); font-size: 1rem; }
+  .stat-value.pos { color: var(--green); }
+  .stat-value.neg { color: var(--red); }
+  .stat-value.gold { color: var(--gold); }
+
+  .form-panel { background: var(--surface); border: 1px solid var(--border); padding: 20px; margin-bottom: 24px; display: none; }
+  .form-panel.open { display: block; }
+  .form-title { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
+  input, select, textarea { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; font-family: var(--font-body); font-size: 13px; outline: none; transition: border-color 0.15s; width: 100%; }
+  input:focus, select:focus, textarea:focus { border-color: var(--gold2); }
+  select option { background: var(--surface); }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .scoring-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .scoring-title { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text2); margin-bottom: 12px; }
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .score-item { background: var(--bg); border: 1px solid var(--border); padding: 10px 12px; }
+  .score-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .score-name { font-size: 0.75rem; color: var(--text); }
+  .score-buttons { display: flex; gap: 4px; }
+  .score-btn { width: 26px; height: 26px; border: 1px solid var(--border); background: var(--surface); color: var(--text3); font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-family: var(--font-body); }
+  .score-btn:hover { border-color: var(--gold2); color: var(--gold); }
+  .score-btn.selected { background: var(--gold2); border-color: var(--gold); color: #000; font-weight: bold; }
+  .score-def { font-size: 0.63rem; color: var(--text3); line-height: 1.4; min-height: 32px; }
+
+  .online-tournaments { display: flex; flex-direction: column; gap: 8px; }
+  .online-tourney { background: var(--bg); border: 1px solid var(--border); padding: 10px 12px; }
+  .online-tourney-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .online-tourney-title { font-size: 0.68rem; color: var(--text2); letter-spacing: 0.08em; text-transform: uppercase; }
+  .online-tourney-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; align-items: end; }
+  .type-toggle { display: flex; margin-bottom: 8px; }
+  .type-btn { flex: 1; padding: 6px; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text3); transition: all 0.15s; font-family: var(--font-body); }
+  .type-btn.active { background: var(--gold2); border-color: var(--gold); color: #000; }
+
+  .records { display: flex; flex-direction: column; gap: 8px; }
+  .record { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--border); padding: 14px 16px; cursor: pointer; transition: border-left-color 0.15s; }
+  .record:hover { border-left-color: var(--gold2); }
+  .record.cash { border-left-color: var(--green); }
+  .record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px; }
+  .record-name { font-size: 0.88rem; color: var(--text); }
+  .record-meta { font-size: 0.68rem; color: var(--text3); margin-top: 2px; }
+  .record-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+  .record-net { font-family: var(--font-display); font-size: 0.92rem; font-weight: bold; }
+  .record-net.pos { color: var(--green); }
+  .record-net.neg { color: var(--red); }
+  .record-score { font-size: 0.68rem; color: var(--gold); }
+  .record-scores-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .score-pip { flex: 1; height: 3px; background: var(--border); position: relative; }
+  .score-pip-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--gold2); }
+  .record-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .record-detail.open { display: block; }
+  .detail-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .detail-score { background: var(--bg); padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .detail-score-name { font-size: 0.68rem; color: var(--text2); }
+  .detail-score-val { font-size: 0.85rem; font-weight: bold; color: var(--gold); }
+  .detail-notes { font-size: 0.78rem; color: var(--text2); line-height: 1.5; font-style: italic; }
+
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 0.78rem; border: 1px dashed var(--border); }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filter-label { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
+  .filter-btn { padding: 5px 12px; font-size: 0.68rem; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text3); transition: all 0.15s; font-family: var(--font-body); }
+  .filter-btn:hover { color: var(--text2); }
+  .filter-btn.active { border-color: var(--gold2); color: var(--gold); background: rgba(201,168,76,0.08); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+
+  /* QUALITY TAB */
+  .quality-section { margin-bottom: 32px; }
+  .quality-section-title { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .cat-bars { display: flex; flex-direction: column; gap: 10px; }
+  .cat-bar { display: flex; align-items: center; gap: 12px; }
+  .cat-bar-name { font-size: 0.72rem; color: var(--text2); width: 160px; flex-shrink: 0; }
+  .cat-bar-track { flex: 1; height: 8px; background: var(--border); position: relative; }
+  .cat-bar-fill { height: 100%; background: var(--gold2); transition: width 0.4s; }
+  .cat-bar-val { font-size: 0.72rem; color: var(--gold); width: 40px; text-align: right; flex-shrink: 0; }
+  .best-worst { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .bw-card { background: var(--surface); border: 1px solid var(--border); padding: 14px 16px; }
+  .bw-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .bw-name { font-size: 0.88rem; color: var(--text); margin-bottom: 2px; }
+  .bw-score { font-family: var(--font-display); font-size: 1.1rem; }
+  .bw-score.pos { color: var(--green); }
+  .bw-score.neg { color: var(--red); }
+
+  /* TREND CHART */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+  .chart-title { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+  canvas { width: 100% !important; max-height: 220px; }
+
+  /* P&L TAB */
+  .pl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .pl-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; }
+  .pl-card-title { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+  .pl-stat { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .pl-stat:last-child { border-bottom: none; }
+  .pl-stat-label { font-size: 0.72rem; color: var(--text2); }
+  .pl-stat-val { font-size: 0.88rem; font-family: var(--font-display); }
+  .pl-stat-val.pos { color: var(--green); }
+  .pl-stat-val.neg { color: var(--red); }
+  .pl-stat-val.gold { color: var(--gold); }
+
+  .field-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .field-table th { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .field-table td { font-size: 0.78rem; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .field-table tr:last-child td { border-bottom: none; }
+
+  @media (max-width: 600px) {
+    .pl-grid { grid-template-columns: 1fr; }
+    .detail-scores { grid-template-columns: repeat(2, 1fr); }
+    .online-tourney-grid { grid-template-columns: 1fr 1fr; }
+    .best-worst { grid-template-columns: 1fr; }
+    .cat-bar-name { width: 110px; font-size: 0.65rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Poker Log</div>
+  <div class="nav-tab active" onclick="switchView('live', this)">Live</div>
+  <div class="nav-tab" onclick="switchView('online', this)">Online</div>
+  <div class="nav-tab" onclick="switchView('quality', this)">Quality</div>
+  <div class="nav-tab" onclick="switchView('pl', this)">P&L</div>
+</nav>
+
+<div class="main">
+
+  <!-- ══ LIVE ══ -->
+  <div class="view active" id="view-live">
+    <div class="section-header">
+      <div><div class="section-title">Live Tournaments</div><div class="section-subtitle">All figures in £</div></div>
+      <button class="btn btn-gold" onclick="toggleForm('live-form')">+ Add</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-label">Tournaments</div><div class="stat-value gold" id="ls-count">0</div></div>
+      <div class="stat"><div class="stat-label">Cashes</div><div class="stat-value pos" id="ls-cashes">0</div></div>
+      <div class="stat"><div class="stat-label">Cash Rate</div><div class="stat-value gold" id="ls-cashrate">—</div></div>
+      <div class="stat"><div class="stat-label">Net</div><div class="stat-value" id="ls-net">£0</div></div>
+      <div class="stat"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="ls-score">—</div></div>
+    </div>
+
+    <div class="form-panel" id="live-form">
+      <div class="form-title">New Tournament</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="l-date"></div>
+        <div class="form-group" style="grid-column:span 2"><label>Tournament Name</label><input type="text" id="l-name" placeholder="e.g. £165 Vic Deepstack"></div>
+        <div class="form-group"><label>Entry (£)</label><input type="number" id="l-entry" placeholder="165"></div>
+        <div class="form-group"><label>Fee (£)</label><input type="number" id="l-fee" placeholder="15"></div>
+        <div class="form-group"><label>Bullets</label><input type="number" id="l-bullets" value="1" min="1"></div>
+        <div class="form-group"><label>Runners</label><input type="number" id="l-runners" placeholder="e.g. 80"></div>
+        <div class="form-group"><label>Result</label><select id="l-result"><option value="bust">Bust</option><option value="cash">Cash</option></select></div>
+        <div class="form-group"><label>Finish Position</label><input type="text" id="l-position" placeholder="e.g. 10th"></div>
+        <div class="form-group"><label>Prize (£)</label><input type="number" id="l-prize" value="0"></div>
+      </div>
+      <div class="scoring-section">
+        <div class="scoring-title">Session Quality — score each 1 to 4</div>
+        <div class="score-grid" id="live-scores"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px"><label>Last Hand</label><textarea id="l-lasthand" placeholder="How did it end..."></textarea></div>
+      <div class="form-group" style="margin-top:8px"><label>Notes</label><textarea id="l-notes" placeholder="General thoughts..."></textarea></div>
+      <div class="form-actions">
+        <button class="btn" onclick="toggleForm('live-form')">Cancel</button>
+        <button class="btn btn-gold" onclick="saveLive()">Save</button>
+      </div>
+    </div>
+
+    <div class="records" id="live-records"><div class="empty-state">No tournaments logged yet</div></div>
+  </div>
+
+  <!-- ══ ONLINE ══ -->
+  <div class="view" id="view-online">
+    <div class="section-header">
+      <div><div class="section-title">Online Sessions</div><div class="section-subtitle">All figures in $</div></div>
+      <button class="btn btn-gold" onclick="toggleForm('online-form')">+ Add</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-label">Sessions</div><div class="stat-value gold" id="os-count">0</div></div>
+      <div class="stat"><div class="stat-label">Net</div><div class="stat-value" id="os-net">$0</div></div>
+      <div class="stat"><div class="stat-label">Best Session</div><div class="stat-value pos" id="os-best">—</div></div>
+      <div class="stat"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="os-score">—</div></div>
+    </div>
+
+    <div class="form-panel" id="online-form">
+      <div class="form-title">New Session</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="o-date"></div>
+        <div class="form-group"><label>Starting Balance ($)</label><input type="number" id="o-start" placeholder="0.00"></div>
+        <div class="form-group"><label>Closing Balance ($)</label><input type="number" id="o-end" placeholder="0.00"></div>
+      </div>
+      <div style="margin:12px 0 8px">
+        <label style="display:block;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Tournaments Played</label>
+        <div class="online-tournaments" id="online-tourneys"></div>
+        <button class="btn btn-sm" onclick="addOnlineTourney()" style="margin-top:8px">+ Add Tournament</button>
+      </div>
+      <div class="scoring-section" id="online-scoring-section" style="display:none">
+        <div class="scoring-title">Session Quality — score each 1 to 4 (tournaments only)</div>
+        <div class="score-grid" id="online-scores"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px"><label>Notes</label><textarea id="o-notes" placeholder="General thoughts..."></textarea></div>
+      <div class="form-actions">
+        <button class="btn" onclick="toggleForm('online-form')">Cancel</button>
+        <button class="btn btn-gold" onclick="saveOnline()">Save</button>
+      </div>
+    </div>
+
+    <div class="records" id="online-records"><div class="empty-state">No sessions logged yet</div></div>
+  </div>
+
+  <!-- ══ QUALITY ══ -->
+  <div class="view" id="view-quality">
+    <div class="section-header">
+      <div><div class="section-title">Quality Analysis</div></div>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">View</span>
+      <button class="filter-btn active" onclick="setQFilter('source','both',this)">Both</button>
+      <button class="filter-btn" onclick="setQFilter('source','live',this)">Live</button>
+      <button class="filter-btn" onclick="setQFilter('source','online',this)">Online</button>
+      <div class="filter-sep"></div>
+      <span class="filter-label">Period</span>
+      <button class="filter-btn active" onclick="setQFilter('period','all',this)">All Time</button>
+      <button class="filter-btn" onclick="setQFilter('period','year',this)">Year</button>
+      <button class="filter-btn" onclick="setQFilter('period','month',this)">Month</button>
+      <button class="filter-btn" onclick="setQFilter('period','week',this)">Week</button>
+    </div>
+    <div id="quality-content"><div class="empty-state">No scored sessions yet</div></div>
+  </div>
+
+  <!-- ══ P&L ══ -->
+  <div class="view" id="view-pl">
+    <div class="section-header">
+      <div><div class="section-title">P&L</div></div>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">Period</span>
+      <button class="filter-btn active" onclick="setPLFilter('period','all',this)">All Time</button>
+      <button class="filter-btn" onclick="setPLFilter('period','year',this)">Year</button>
+      <button class="filter-btn" onclick="setPLFilter('period','month',this)">Month</button>
+      <button class="filter-btn" onclick="setPLFilter('period','week',this)">Week</button>
+    </div>
+    <div id="pl-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ── CATEGORIES ────────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { id:'patience', name:'Patience', sub:'Open or fold discipline',
+    defs:{1:'Limped multiple times, called to hit repeatedly',2:'One or two unnecessary limps or speculative calls',3:'Mostly disciplined, one lapse',4:'Clean open or fold discipline throughout'}},
+  { id:'sizing', name:'Bet Sizing', sub:'Pre and post flop',
+    defs:{1:"Sizing consistently didn't match purpose",2:'Frequent sizing errors, value missed or pot odds given away',3:'Mostly good, one or two spots off',4:'Every bet sized with clear purpose throughout'}},
+  { id:'aggression', name:'Aggression', sub:'3-bets, bluffs, c-bets',
+    defs:{1:'Passive throughout, no 3-bets, checked when should have bet',2:'Under-aggressive in multiple spots',3:'Applied pressure in the right spots, some missed opportunities',4:'Consistently aggressive, mixed range effectively'}},
+  { id:'ranges', name:'Ranges', sub:'Player reads, position',
+    defs:{1:'No reads developed, played without positional awareness',2:'Some reads but not acted upon',3:'Labelled players, mostly acted on correctly',4:'Accurate reads throughout, positional play strong'}},
+  { id:'cbet', name:'Continuation Betting', sub:'Selection and balance',
+    defs:{1:'Auto-bet every raise, no balance, easily readable',2:'Frequent unnecessary continuation bets',3:'Good selection, mixed checks and bets with purpose',4:'Excellent balance, clear reason for every bet'}},
+  { id:'discipline', name:'Discipline Under Pressure', sub:'Paying off, bear pause',
+    defs:{1:'Multiple lapses — called off, acted quickly, frustration drove decisions',2:'One clear discipline failure',3:'Mostly disciplined, used pause in significant spots, one lapse',4:'Consistent discipline, paused in tough spots, no emotion-driven decisions'}}
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let liveData = [], onlineData = [];
+let liveScores = {}, onlineScores = {};
+let onlineTourneyCount = 0;
+let qFilters = { source: 'both', period: 'all' };
+let plFilters = { period: 'all' };
+
+function loadData() {
+  try { liveData = JSON.parse(localStorage.getItem('pk_live') || '[]'); } catch(e) { liveData = []; }
+  try { onlineData = JSON.parse(localStorage.getItem('pk_online') || '[]'); } catch(e) { onlineData = []; }
+}
+function saveData() {
+  try { localStorage.setItem('pk_live', JSON.stringify(liveData)); localStorage.setItem('pk_online', JSON.stringify(onlineData)); } catch(e) {}
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function switchView(v, el) {
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x => x.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  el.classList.add('active');
+  if (v === 'quality') renderQuality();
+  if (v === 'pl') renderPL();
+}
+
+function toggleForm(id) {
+  const f = document.getElementById(id);
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) {
+    const dateId = id === 'live-form' ? 'l-date' : 'o-date';
+    document.getElementById(dateId).value = new Date().toISOString().split('T')[0];
+  }
+}
+
+// ── SCORE WIDGET ──────────────────────────────────────────────────────────────
+function buildScoreGrid(containerId, scoresObj) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'score-item';
+    div.innerHTML = `
+      <div class="score-item-header">
+        <div class="score-name">${cat.name}</div>
+        <div class="score-buttons">
+          ${[1,2,3,4].map(n => `<button class="score-btn ${scoresObj[cat.id]===n?'selected':''}" onclick="setScore('${containerId}','${cat.id}',${n},this)">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="score-def" id="def-${containerId}-${cat.id}">${scoresObj[cat.id] ? cat.defs[scoresObj[cat.id]] : cat.sub}</div>`;
+    container.appendChild(div);
+  });
+}
+function setScore(cid, catId, val, btn) {
+  const obj = cid === 'live-scores' ? liveScores : onlineScores;
+  obj[catId] = val;
+  btn.closest('.score-buttons').querySelectorAll('.score-btn').forEach((b,i) => b.classList.toggle('selected', i+1===val));
+  document.getElementById(`def-${cid}-${catId}`).textContent = CATEGORIES.find(c=>c.id===catId).defs[val];
+}
+function totalScore(scores) { return Object.values(scores).reduce((a,b)=>a+b,0); }
+
+// ── ONLINE TOURNEYS ───────────────────────────────────────────────────────────
+function addOnlineTourney() {
+  const container = document.getElementById('online-tourneys');
+  const idx = onlineTourneyCount++;
+  const div = document.createElement('div');
+  div.className = 'online-tourney'; div.id = `ot-${idx}`; div.dataset.type = 'tournament';
+  div.innerHTML = `
+    <div class="online-tourney-header">
+      <div class="online-tourney-title">Tournament ${idx+1}</div>
+      <button class="btn btn-sm" onclick="removeOT(${idx})">Remove</button>
+    </div>
+    <div class="type-toggle">
+      <button class="type-btn active" onclick="setOTType(${idx},'tournament',this)">Tournament</button>
+      <button class="type-btn" onclick="setOTType(${idx},'satellite',this)">Satellite</button>
+    </div>
+    <div class="online-tourney-grid">
+      <div class="form-group"><label>Name</label><input type="text" id="ot-name-${idx}" placeholder="e.g. $50 PKO"></div>
+      <div class="form-group"><label>Entry ($)</label><input type="number" id="ot-entry-${idx}" placeholder="0"></div>
+      <div class="form-group"><label>Prize ($)</label><input type="number" id="ot-prize-${idx}" value="0"></div>
+      <div class="form-group"><label>Result</label><select id="ot-result-${idx}"><option value="bust">Bust</option><option value="cash">Cash</option><option value="seat">Won Seat</option></select></div>
+    </div>`;
+  container.appendChild(div);
+  checkOnlineScoring();
+}
+function removeOT(idx) { const el = document.getElementById(`ot-${idx}`); if(el) el.remove(); checkOnlineScoring(); }
+function setOTType(idx, type, btn) {
+  const div = document.getElementById(`ot-${idx}`); div.dataset.type = type;
+  btn.closest('.type-toggle').querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); checkOnlineScoring();
+}
+function checkOnlineScoring() {
+  const hasTournament = Array.from(document.querySelectorAll('.online-tourney')).some(t => t.dataset.type === 'tournament');
+  document.getElementById('online-scoring-section').style.display = hasTournament ? 'block' : 'none';
+}
+
+// ── SAVE LIVE ─────────────────────────────────────────────────────────────────
+function saveLive() {
+  const entry = parseFloat(document.getElementById('l-entry').value)||0;
+  const fee = parseFloat(document.getElementById('l-fee').value)||0;
+  const bullets = parseInt(document.getElementById('l-bullets').value)||1;
+  const prize = parseFloat(document.getElementById('l-prize').value)||0;
+  const result = document.getElementById('l-result').value;
+  const net = prize - (entry+fee)*bullets;
+  liveData.unshift({
+    id: Date.now(),
+    date: document.getElementById('l-date').value,
+    name: document.getElementById('l-name').value||'Unnamed',
+    entry, fee, bullets, prize, result,
+    runners: parseInt(document.getElementById('l-runners').value)||0,
+    position: document.getElementById('l-position').value,
+    net, scores: {...liveScores}, totalScore: totalScore(liveScores),
+    lastHand: document.getElementById('l-lasthand').value,
+    notes: document.getElementById('l-notes').value
+  });
+  saveData(); liveScores = {}; buildScoreGrid('live-scores', liveScores);
+  document.getElementById('live-form').classList.remove('open');
+  // reset fields
+  ['l-name','l-entry','l-fee','l-position','l-lasthand','l-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('l-bullets').value=1; document.getElementById('l-prize').value=0; document.getElementById('l-runners').value='';
+  renderLive();
+}
+
+// ── SAVE ONLINE ───────────────────────────────────────────────────────────────
+function saveOnline() {
+  const start = parseFloat(document.getElementById('o-start').value)||0;
+  const end = parseFloat(document.getElementById('o-end').value)||0;
+  const tourneys = [];
+  document.querySelectorAll('.online-tourney').forEach(div => {
+    const idx = div.id.replace('ot-','');
+    tourneys.push({ name: document.getElementById(`ot-name-${idx}`)?.value||'', entry: parseFloat(document.getElementById(`ot-entry-${idx}`)?.value)||0, prize: parseFloat(document.getElementById(`ot-prize-${idx}`)?.value)||0, result: document.getElementById(`ot-result-${idx}`)?.value||'bust', type: div.dataset.type||'tournament' });
+  });
+  const hasTournament = tourneys.some(t=>t.type==='tournament');
+  onlineData.unshift({
+    id: Date.now(), date: document.getElementById('o-date').value,
+    start, end, net: end-start, tourneys,
+    scores: hasTournament ? {...onlineScores} : {},
+    totalScore: hasTournament ? totalScore(onlineScores) : null,
+    notes: document.getElementById('o-notes').value
+  });
+  saveData(); onlineScores = {}; onlineTourneyCount = 0;
+  document.getElementById('online-tourneys').innerHTML = '';
+  buildScoreGrid('online-scores', onlineScores);
+  document.getElementById('online-form').classList.remove('open');
+  document.getElementById('o-start').value=''; document.getElementById('o-end').value=''; document.getElementById('o-notes').value='';
+  renderOnline();
+}
+
+// ── RENDER LIVE ───────────────────────────────────────────────────────────────
+function renderLive() {
+  const container = document.getElementById('live-records');
+  if (!liveData.length) { container.innerHTML = '<div class="empty-state">No tournaments logged yet</div>'; updateLiveStats(); return; }
+  container.innerHTML = '';
+  liveData.forEach(r => {
+    const div = document.createElement('div');
+    div.className = `record ${r.result}`;
+    const netClass = r.net>=0?'pos':'neg';
+    const netStr = (r.net>=0?'+':'')+`£${Math.abs(r.net).toFixed(0)}`;
+    const pips = CATEGORIES.map(cat => { const s=r.scores[cat.id]||0; return `<div class="score-pip"><div class="score-pip-fill" style="width:${(s/4)*100}%"></div></div>`; }).join('');
+    const dscores = CATEGORIES.map(cat => `<div class="detail-score"><div class="detail-score-name">${cat.name}</div><div class="detail-score-val">${r.scores[cat.id]||'—'}</div></div>`).join('');
+    div.innerHTML = `
+      <div class="record-header" onclick="toggleDetail(${r.id})">
+        <div><div class="record-name">${r.name}</div><div class="record-meta">${fmt(r.date)} · £${r.entry}+£${r.fee} · ${r.bullets} bullet${r.bullets>1?'s':''} · ${r.runners?r.runners+' runners · ':''} ${r.result==='cash'?`Cash — ${r.position}`:'Bust'}</div></div>
+        <div class="record-right"><div class="record-net ${netClass}">${netStr}</div><div class="record-score">${r.totalScore?r.totalScore+'/24':'—'}</div></div>
+      </div>
+      <div class="record-scores-bar">${pips}</div>
+      <div class="record-detail" id="detail-${r.id}">
+        <div class="detail-scores">${dscores}</div>
+        ${r.lastHand?`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Last Hand</div><div class="detail-notes">${r.lastHand}</div></div>`:''}
+        ${r.notes?`<div><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+      </div>`;
+    container.appendChild(div);
+  });
+  updateLiveStats();
+}
+function updateLiveStats() {
+  const n=liveData.length, c=liveData.filter(r=>r.result==='cash').length;
+  const net=liveData.reduce((a,r)=>a+r.net,0);
+  const scored=liveData.filter(r=>r.totalScore>0);
+  const avg=scored.length?(scored.reduce((a,r)=>a+r.totalScore,0)/scored.length).toFixed(1):'—';
+  document.getElementById('ls-count').textContent=n;
+  document.getElementById('ls-cashes').textContent=c;
+  document.getElementById('ls-cashrate').textContent=n?Math.round((c/n)*100)+'%':'—';
+  const nel=document.getElementById('ls-net'); nel.textContent=(net>=0?'+':'')+'£'+Math.abs(net).toFixed(0); nel.className='stat-value '+(net>=0?'pos':'neg');
+  document.getElementById('ls-score').textContent=avg==='—'?'—':avg+'/24';
+}
+
+// ── RENDER ONLINE ─────────────────────────────────────────────────────────────
+function renderOnline() {
+  const container = document.getElementById('online-records');
+  if (!onlineData.length) { container.innerHTML = '<div class="empty-state">No sessions logged yet</div>'; updateOnlineStats(); return; }
+  container.innerHTML = '';
+  onlineData.forEach(r => {
+    const div = document.createElement('div');
+    div.className = `record ${r.net>=0?'cash':''}`;
+    const netClass=r.net>=0?'pos':'neg';
+    const netStr=(r.net>=0?'+$':'-$')+Math.abs(r.net).toFixed(2);
+    const pips = r.totalScore!=null ? CATEGORIES.map(cat => { const s=r.scores[cat.id]||0; return `<div class="score-pip"><div class="score-pip-fill" style="width:${(s/4)*100}%"></div></div>`; }).join('') : '';
+    const dscores = r.totalScore!=null ? CATEGORIES.map(cat => `<div class="detail-score"><div class="detail-score-name">${cat.name}</div><div class="detail-score-val">${r.scores[cat.id]||'—'}</div></div>`).join('') : '<div style="color:var(--text3);font-size:0.72rem;padding:8px 0">Satellites only — no quality score</div>';
+    const tlist = r.tourneys?.map(t=>`<div style="font-size:0.7rem;color:var(--text2);padding:2px 0">${t.type==='satellite'?'⟳ ':''}${t.name||'Unnamed'} · $${t.entry} · ${t.result}</div>`).join('')||'';
+    div.innerHTML = `
+      <div class="record-header" onclick="toggleDetail(${r.id})">
+        <div><div class="record-name">${fmt(r.date)}</div><div class="record-meta">$${r.start} → $${r.end} · ${r.tourneys?.length||0} tournament${r.tourneys?.length!==1?'s':''}</div></div>
+        <div class="record-right"><div class="record-net ${netClass}">${netStr}</div><div class="record-score">${r.totalScore!=null?r.totalScore+'/24':'—'}</div></div>
+      </div>
+      ${pips?`<div class="record-scores-bar">${pips}</div>`:''}
+      <div class="record-detail" id="detail-${r.id}">
+        ${tlist?`<div style="margin-bottom:10px">${tlist}</div>`:''}
+        <div class="detail-scores">${dscores}</div>
+        ${r.notes?`<div style="margin-top:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+      </div>`;
+    container.appendChild(div);
+  });
+  updateOnlineStats();
+}
+function updateOnlineStats() {
+  const n=onlineData.length, net=onlineData.reduce((a,r)=>a+r.net,0);
+  const best=n?Math.max(...onlineData.map(r=>r.net)):0;
+  const scored=onlineData.filter(r=>r.totalScore!=null);
+  const avg=scored.length?(scored.reduce((a,r)=>a+r.totalScore,0)/scored.length).toFixed(1):'—';
+  document.getElementById('os-count').textContent=n;
+  const nel=document.getElementById('os-net'); nel.textContent=(net>=0?'+$':'-$')+Math.abs(net).toFixed(2); nel.className='stat-value '+(net>=0?'pos':'neg');
+  const bel=document.getElementById('os-best'); bel.textContent=n?(best>=0?'+$':'-$')+Math.abs(best).toFixed(2):'—'; bel.className='stat-value '+(best>=0?'pos':'neg');
+  document.getElementById('os-score').textContent=avg==='—'?'—':avg+'/24';
+}
+
+function toggleDetail(id) { const el=document.getElementById(`detail-${id}`); if(el) el.classList.toggle('open'); }
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function setQFilter(key, val, el) {
+  qFilters[key]=val;
+  el.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b => { if(b.onclick?.toString().includes(`'${key}'`)) b.classList.remove('active'); });
+  el.classList.add('active');
+  renderQuality();
+}
+function setPLFilter(key, val, el) {
+  plFilters[key]=val;
+  el.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderPL();
+}
+
+function filterByPeriod(arr, dateKey, period) {
+  if (period==='all') return arr;
+  const now=new Date(), d=new Date();
+  if (period==='week') d.setDate(now.getDate()-7);
+  else if (period==='month') d.setMonth(now.getMonth()-1);
+  else if (period==='year') d.setFullYear(now.getFullYear()-1);
+  return arr.filter(r => new Date(r[dateKey]+'T12:00:00') >= d);
+}
+
+// ── QUALITY ───────────────────────────────────────────────────────────────────
+function renderQuality() {
+  const container = document.getElementById('quality-content');
+  let liveFiltered = filterByPeriod(liveData, 'date', qFilters.period).filter(r=>r.totalScore>0);
+  let onlineFiltered = filterByPeriod(onlineData, 'date', qFilters.period).filter(r=>r.totalScore!=null);
+
+  const showLive = qFilters.source!=='online';
+  const showOnline = qFilters.source!=='live';
+
+  if ((!showLive||!liveFiltered.length) && (!showOnline||!onlineFiltered.length)) {
+    container.innerHTML = '<div class="empty-state">No scored sessions in this period</div>'; return;
+  }
+
+  let html = '';
+
+  function buildQSection(label, records) {
+    if (!records.length) return '';
+    const avgs = CATEGORIES.map(cat => {
+      const vals = records.map(r=>r.scores[cat.id]).filter(Boolean);
+      return { cat, avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0 };
+    });
+    const sorted = [...avgs].sort((a,b)=>b.avg-a.avg);
+    const best = sorted[0], worst = sorted[sorted.length-1];
+
+    const bars = avgs.map(({cat,avg}) => `
+      <div class="cat-bar">
+        <div class="cat-bar-name">${cat.name}</div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(avg/4)*100}%"></div></div>
+        <div class="cat-bar-val">${avg.toFixed(1)}</div>
+      </div>`).join('');
+
+    // trend: last 6 scored sessions
+    const recent = [...records].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
+    const trendLines = CATEGORIES.map(cat => {
+      const pts = recent.map((r,i) => ({ x: i, y: r.scores[cat.id]||0 }));
+      return { cat, pts };
+    });
+
+    return `
+      <div class="quality-section">
+        <div class="quality-section-title">${label}</div>
+        <div class="cat-bars">${bars}</div>
+        <div class="best-worst">
+          <div class="bw-card"><div class="bw-label">Strongest Area</div><div class="bw-name">${best.cat.name}</div><div class="bw-score pos">${best.avg.toFixed(1)} / 4</div></div>
+          <div class="bw-card"><div class="bw-label">Needs Most Work</div><div class="bw-name">${worst.cat.name}</div><div class="bw-score neg">${worst.avg.toFixed(1)} / 4</div></div>
+        </div>
+        ${recent.length>1 ? `<div class="chart-wrap" style="margin-top:16px"><div class="chart-title">Score Trend — last ${recent.length} sessions</div><canvas id="trend-${label.replace(/\s/g,'')}"></canvas></div>` : ''}
+      </div>`;
+  }
+
+  if (showLive && liveFiltered.length) html += buildQSection('Live', liveFiltered);
+  if (showOnline && onlineFiltered.length) html += buildQSection('Online', onlineFiltered);
+  container.innerHTML = html;
+
+  // draw trend charts
+  function drawTrend(canvasId, records) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const recent = [...records].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
+    if (recent.length < 2) return;
+    const dpr = window.devicePixelRatio||1;
+    const W = canvas.parentElement.clientWidth - 32;
+    const H = 200;
+    canvas.width = W*dpr; canvas.height = H*dpr;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+    const pad = {l:30,r:16,t:16,b:24};
+    const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+    ctx.fillStyle='#141414'; ctx.fillRect(0,0,W,H);
+    // grid
+    ctx.strokeStyle='#222'; ctx.lineWidth=1;
+    [1,2,3,4].forEach(y => {
+      const py = pad.t + iH - ((y-1)/3)*iH;
+      ctx.beginPath(); ctx.moveTo(pad.l,py); ctx.lineTo(W-pad.r,py); ctx.stroke();
+      ctx.fillStyle='#444'; ctx.font='9px sans-serif'; ctx.fillText(y, pad.l-18, py+3);
+    });
+    const colors=['#c9a84c','#4a9e6b','#4a7ec4','#c45a4a','#8a6ec4','#c47a4a'];
+    CATEGORIES.forEach((cat,ci) => {
+      const pts = recent.map((r,i)=>({ x: pad.l + (i/(recent.length-1))*iW, y: pad.t + iH - ((( r.scores[cat.id]||1)-1)/3)*iH }));
+      ctx.strokeStyle=colors[ci]; ctx.lineWidth=1.5; ctx.setLineDash([]);
+      ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
+      pts.forEach(p=>{ ctx.fillStyle=colors[ci]; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); });
+    });
+    // x labels
+    ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+    recent.forEach((r,i)=>{ const x=pad.l+(i/(recent.length-1))*iW; ctx.fillText(fmtShort(r.date),x,H-6); });
+    // legend
+    ctx.textAlign='left';
+    CATEGORIES.forEach((cat,ci)=>{
+      const lx=pad.l+(ci%3)*(iW/3), ly=H-12+(Math.floor(ci/3)*0);
+      ctx.fillStyle=colors[ci]; ctx.fillRect(lx,pad.t+iH+4,8,6);
+    });
+  }
+
+  setTimeout(()=>{
+    if (showLive && liveFiltered.length>1) drawTrend('trend-Live', liveFiltered);
+    if (showOnline && onlineFiltered.length>1) drawTrend('trend-Online', onlineFiltered);
+  }, 50);
+}
+
+// ── P&L ───────────────────────────────────────────────────────────────────────
+function renderPL() {
+  const container = document.getElementById('pl-content');
+  const lf = filterByPeriod(liveData,'date',plFilters.period);
+  const of = filterByPeriod(onlineData,'date',plFilters.period);
+
+  const lNet=lf.reduce((a,r)=>a+r.net,0);
+  const lIn=lf.reduce((a,r)=>a+(r.entry+r.fee)*r.bullets,0);
+  const lOut=lf.reduce((a,r)=>a+r.prize,0);
+  const lCash=lf.filter(r=>r.result==='cash').length;
+  const lCashRate=lf.length?Math.round((lCash/lf.length)*100):0;
+
+  const oNet=of.reduce((a,r)=>a+r.net,0);
+
+  // field size breakdown
+  const brackets=[{label:'Small (<100)',min:0,max:99},{label:'Medium (100–500)',min:100,max:500},{label:'Large (500+)',min:501,max:Infinity}];
+  const fieldRows = brackets.map(b=>{
+    const subset=lf.filter(r=>r.runners>=b.min&&r.runners<=b.max&&r.runners>0);
+    if(!subset.length) return null;
+    const net=subset.reduce((a,r)=>a+r.net,0);
+    const c=subset.filter(r=>r.result==='cash').length;
+    return `<tr><td>${b.label}</td><td>${subset.length}</td><td>${c} (${subset.length?Math.round((c/subset.length)*100):0}%)</td><td style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}&pound;${Math.abs(net).toFixed(0)}</td></tr>`;
+  }).filter(Boolean).join('');
+
+  container.innerHTML = `
+    <div class="pl-grid">
+      <div class="pl-card">
+        <div class="pl-card-title">Live — £</div>
+        <div class="pl-stat"><span class="pl-stat-label">Tournaments</span><span class="pl-stat-val gold">${lf.length}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Total Invested</span><span class="pl-stat-val neg">-£${lIn.toFixed(0)}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Total Returned</span><span class="pl-stat-val pos">+£${lOut.toFixed(0)}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Net</span><span class="pl-stat-val ${lNet>=0?'pos':'neg'}">${lNet>=0?'+':''}&pound;${Math.abs(lNet).toFixed(0)}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Cash Rate</span><span class="pl-stat-val gold">${lf.length?lCashRate+'%':'—'}</span></div>
+      </div>
+      <div class="pl-card">
+        <div class="pl-card-title">Online — $</div>
+        <div class="pl-stat"><span class="pl-stat-label">Sessions</span><span class="pl-stat-val gold">${of.length}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Net</span><span class="pl-stat-val ${oNet>=0?'pos':'neg'}">${oNet>=0?'+$':'-$'}${Math.abs(oNet).toFixed(2)}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Best Session</span><span class="pl-stat-val pos">${of.length?(()=>{const b=Math.max(...of.map(r=>r.net));return(b>=0?'+$':'-$')+Math.abs(b).toFixed(2);})():'—'}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">Worst Session</span><span class="pl-stat-val neg">${of.length?(()=>{const w=Math.min(...of.map(r=>r.net));return(w>=0?'+$':'-$')+Math.abs(w).toFixed(2);})():'—'}</span></div>
+      </div>
+    </div>
+
+    ${fieldRows ? `<div class="pl-card" style="margin-bottom:16px">
+      <div class="pl-card-title">Live — Performance by Field Size</div>
+      <table class="field-table">
+        <thead><tr><th>Field Size</th><th>Played</th><th>Cashes</th><th>Net</th></tr></thead>
+        <tbody>${fieldRows}</tbody>
+      </table>
+    </div>` : ''}
+
+    <div class="chart-wrap"><div class="chart-title">Live — Running P&L (£)</div><canvas id="pl-live-chart"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Online — Running P&L ($)</div><canvas id="pl-online-chart"></canvas></div>
+  `;
+
+  setTimeout(()=>{
+    drawPLChart('pl-live-chart', [...lf].sort((a,b)=>new Date(a.date)-new Date(b.date)), '£', 'var(--gold)');
+    drawPLChart('pl-online-chart', [...of].sort((a,b)=>new Date(a.date)-new Date(b.date)), '$', 'var(--blue)');
+  }, 50);
+}
+
+function drawPLChart(canvasId, records, symbol, lineColor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !records.length) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 180;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const pad={l:50,r:16,t:16,b:28};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  ctx.fillStyle='#141414'; ctx.fillRect(0,0,W,H);
+
+  // cumulative
+  let cum=0;
+  const pts=[{x:0,y:0}];
+  records.forEach((r,i)=>{ cum+=r.net; pts.push({x:i+1,y:cum}); });
+  const ys=pts.map(p=>p.y);
+  const minY=Math.min(...ys), maxY=Math.max(...ys);
+  const range=maxY-minY||1;
+
+  function toX(i){ return pad.l+(i/(pts.length-1||1))*iW; }
+  function toY(v){ return pad.t+iH-((v-minY)/range)*iH; }
+
+  // zero line
+  const zy=toY(0);
+  ctx.strokeStyle='#333'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,zy); ctx.lineTo(W-pad.r,zy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // fill
+  ctx.beginPath(); ctx.moveTo(toX(0),toY(0));
+  pts.forEach((p,i)=>ctx.lineTo(toX(i),toY(p.y)));
+  ctx.lineTo(toX(pts.length-1),toY(0)); ctx.closePath();
+  ctx.fillStyle=cum>=0?'rgba(74,158,107,0.12)':'rgba(196,90,74,0.12)'; ctx.fill();
+
+  // line
+  ctx.strokeStyle=cum>=0?'var(--green)':'var(--red)'; ctx.lineWidth=2;
+  ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(toX(i),toY(p.y)):ctx.lineTo(toX(i),toY(p.y))); ctx.stroke();
+
+  // y labels
+  ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='right';
+  [minY, (minY+maxY)/2, maxY].forEach(v=>{
+    ctx.fillText(symbol+Math.round(v), pad.l-4, toY(v)+3);
+  });
+
+  // x labels
+  ctx.textAlign='center';
+  if (records.length<=8) {
+    records.forEach((r,i)=>ctx.fillText(fmtShort(r.date), toX(i+1), H-8));
+  } else {
+    const step=Math.ceil(records.length/5);
+    records.forEach((r,i)=>{ if(i%step===0) ctx.fillText(fmtShort(r.date), toX(i+1), H-8); });
+  }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function fmt(d) { if(!d) return '—'; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtShort(d) { if(!d) return ''; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadData();
+buildScoreGrid('live-scores', liveScores);
+buildScoreGrid('online-scores', onlineScores);
+renderLive();
+renderOnline();
+</script>
+</body>
+</html>
