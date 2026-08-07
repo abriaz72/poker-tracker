@@ -195,7 +195,7 @@
     </div>
 
     <div class="form-panel" id="live-form">
-      <div class="form-title">New Tournament</div>
+      <div class="form-title" id="live-form-title">New Tournament</div>
       <div class="form-grid">
         <div class="form-group"><label>Date</label><input type="date" id="l-date"></div>
         <div class="form-group" style="grid-column:span 2"><label>Tournament Name</label><input type="text" id="l-name" placeholder="e.g. £165 Vic Deepstack"></div>
@@ -214,8 +214,8 @@
       <div class="form-group" style="margin-top:12px"><label>Last Hand</label><textarea id="l-lasthand" placeholder="How did it end..."></textarea></div>
       <div class="form-group" style="margin-top:8px"><label>Notes</label><textarea id="l-notes" placeholder="General thoughts..."></textarea></div>
       <div class="form-actions">
-        <button class="btn" onclick="toggleForm('live-form')">Cancel</button>
-        <button class="btn btn-gold" onclick="saveLive()">Save</button>
+        <button class="btn" onclick="toggleForm('live-form');editingLiveId=null;document.getElementById('live-form-title').textContent='New Tournament';document.getElementById('live-save-btn').textContent='Save'">Cancel</button>
+        <button class="btn btn-gold" id="live-save-btn" onclick="saveLive()">Save</button>
       </div>
     </div>
 
@@ -236,7 +236,7 @@
     </div>
 
     <div class="form-panel" id="online-form">
-      <div class="form-title">New Session</div>
+      <div class="form-title" id="online-form-title">New Session</div>
       <div class="form-grid">
         <div class="form-group"><label>Date</label><input type="date" id="o-date"></div>
         <div class="form-group"><label>Starting Balance ($)</label><input type="number" id="o-start" placeholder="0.00"></div>
@@ -253,8 +253,8 @@
       </div>
       <div class="form-group" style="margin-top:12px"><label>Notes</label><textarea id="o-notes" placeholder="General thoughts..."></textarea></div>
       <div class="form-actions">
-        <button class="btn" onclick="toggleForm('online-form')">Cancel</button>
-        <button class="btn btn-gold" onclick="saveOnline()">Save</button>
+        <button class="btn" onclick="toggleForm('online-form');editingOnlineId=null;document.getElementById('online-form-title').textContent='New Session';document.getElementById('online-save-btn').textContent='Save'">Cancel</button>
+        <button class="btn btn-gold" id="online-save-btn" onclick="saveOnline()">Save</button>
       </div>
     </div>
 
@@ -321,6 +321,8 @@ let liveScores = {}, onlineScores = {};
 let onlineTourneyCount = 0;
 let qFilters = { source: 'both', period: 'all' };
 let plFilters = { period: 'all' };
+let editingLiveId = null;
+let editingOnlineId = null;
 
 function loadData() {
   try { liveData = JSON.parse(localStorage.getItem('pk_live') || '[]'); } catch(e) { liveData = []; }
@@ -411,6 +413,30 @@ function checkOnlineScoring() {
   document.getElementById('online-scoring-section').style.display = hasTournament ? 'block' : 'none';
 }
 
+// ── EDIT LIVE ─────────────────────────────────────────────────────────────────
+function editLive(id) {
+  const r = liveData.find(x => x.id === id);
+  if (!r) return;
+  editingLiveId = id;
+  document.getElementById('l-date').value = r.date;
+  document.getElementById('l-name').value = r.name;
+  document.getElementById('l-entry').value = r.entry;
+  document.getElementById('l-fee').value = r.fee;
+  document.getElementById('l-bullets').value = r.bullets;
+  document.getElementById('l-runners').value = r.runners || '';
+  document.getElementById('l-result').value = r.result;
+  document.getElementById('l-position').value = r.position || '';
+  document.getElementById('l-prize').value = r.prize;
+  document.getElementById('l-lasthand').value = r.lastHand || '';
+  document.getElementById('l-notes').value = r.notes || '';
+  liveScores = {...r.scores};
+  buildScoreGrid('live-scores', liveScores);
+  document.getElementById('live-form-title').textContent = 'Edit Tournament';
+  document.getElementById('live-save-btn').textContent = 'Update';
+  document.getElementById('live-form').classList.add('open');
+  document.getElementById('live-form').scrollIntoView({behavior:'smooth'});
+}
+
 // ── SAVE LIVE ─────────────────────────────────────────────────────────────────
 function saveLive() {
   const entry = parseFloat(document.getElementById('l-entry').value)||0;
@@ -419,8 +445,8 @@ function saveLive() {
   const prize = parseFloat(document.getElementById('l-prize').value)||0;
   const result = document.getElementById('l-result').value;
   const net = prize - (entry+fee)*bullets;
-  liveData.unshift({
-    id: Date.now(),
+  const record = {
+    id: editingLiveId || Date.now(),
     date: document.getElementById('l-date').value,
     name: document.getElementById('l-name').value||'Unnamed',
     entry, fee, bullets, prize, result,
@@ -429,13 +455,58 @@ function saveLive() {
     net, scores: {...liveScores}, totalScore: totalScore(liveScores),
     lastHand: document.getElementById('l-lasthand').value,
     notes: document.getElementById('l-notes').value
-  });
+  };
+  if (editingLiveId) {
+    const idx = liveData.findIndex(x => x.id === editingLiveId);
+    if (idx !== -1) liveData[idx] = record;
+    editingLiveId = null;
+  } else {
+    liveData.unshift(record);
+  }
   saveData(); liveScores = {}; buildScoreGrid('live-scores', liveScores);
   document.getElementById('live-form').classList.remove('open');
-  // reset fields
+  document.getElementById('live-form-title').textContent = 'New Tournament';
+  document.getElementById('live-save-btn').textContent = 'Save';
   ['l-name','l-entry','l-fee','l-position','l-lasthand','l-notes'].forEach(id => document.getElementById(id).value='');
   document.getElementById('l-bullets').value=1; document.getElementById('l-prize').value=0; document.getElementById('l-runners').value='';
   renderLive();
+}
+
+// ── EDIT ONLINE ───────────────────────────────────────────────────────────────
+function editOnline(id) {
+  const r = onlineData.find(x => x.id === id);
+  if (!r) return;
+  editingOnlineId = id;
+  document.getElementById('o-date').value = r.date;
+  document.getElementById('o-start').value = r.start;
+  document.getElementById('o-end').value = r.end;
+  document.getElementById('o-notes').value = r.notes || '';
+  // rebuild tourneys
+  document.getElementById('online-tourneys').innerHTML = '';
+  onlineTourneyCount = 0;
+  if (r.tourneys && r.tourneys.length) {
+    r.tourneys.forEach(t => {
+      addOnlineTourney();
+      const idx = onlineTourneyCount - 1;
+      document.getElementById(`ot-name-${idx}`).value = t.name || '';
+      document.getElementById(`ot-entry-${idx}`).value = t.entry || 0;
+      document.getElementById(`ot-prize-${idx}`).value = t.prize || 0;
+      document.getElementById(`ot-result-${idx}`).value = t.result || 'bust';
+      if (t.type === 'satellite') {
+        const div = document.getElementById(`ot-${idx}`);
+        div.dataset.type = 'satellite';
+        div.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        div.querySelectorAll('.type-btn')[1].classList.add('active');
+      }
+    });
+  }
+  onlineScores = {...(r.scores||{})};
+  buildScoreGrid('online-scores', onlineScores);
+  checkOnlineScoring();
+  document.getElementById('online-form-title').textContent = 'Edit Session';
+  document.getElementById('online-save-btn').textContent = 'Update';
+  document.getElementById('online-form').classList.add('open');
+  document.getElementById('online-form').scrollIntoView({behavior:'smooth'});
 }
 
 // ── SAVE ONLINE ───────────────────────────────────────────────────────────────
@@ -448,17 +519,27 @@ function saveOnline() {
     tourneys.push({ name: document.getElementById(`ot-name-${idx}`)?.value||'', entry: parseFloat(document.getElementById(`ot-entry-${idx}`)?.value)||0, prize: parseFloat(document.getElementById(`ot-prize-${idx}`)?.value)||0, result: document.getElementById(`ot-result-${idx}`)?.value||'bust', type: div.dataset.type||'tournament' });
   });
   const hasTournament = tourneys.some(t=>t.type==='tournament');
-  onlineData.unshift({
-    id: Date.now(), date: document.getElementById('o-date').value,
+  const record = {
+    id: editingOnlineId || Date.now(),
+    date: document.getElementById('o-date').value,
     start, end, net: end-start, tourneys,
     scores: hasTournament ? {...onlineScores} : {},
     totalScore: hasTournament ? totalScore(onlineScores) : null,
     notes: document.getElementById('o-notes').value
-  });
+  };
+  if (editingOnlineId) {
+    const idx = onlineData.findIndex(x => x.id === editingOnlineId);
+    if (idx !== -1) onlineData[idx] = record;
+    editingOnlineId = null;
+  } else {
+    onlineData.unshift(record);
+  }
   saveData(); onlineScores = {}; onlineTourneyCount = 0;
   document.getElementById('online-tourneys').innerHTML = '';
   buildScoreGrid('online-scores', onlineScores);
   document.getElementById('online-form').classList.remove('open');
+  document.getElementById('online-form-title').textContent = 'New Session';
+  document.getElementById('online-save-btn').textContent = 'Save';
   document.getElementById('o-start').value=''; document.getElementById('o-end').value=''; document.getElementById('o-notes').value='';
   renderOnline();
 }
@@ -484,7 +565,8 @@ function renderLive() {
       <div class="record-detail" id="detail-${r.id}">
         <div class="detail-scores">${dscores}</div>
         ${r.lastHand?`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Last Hand</div><div class="detail-notes">${r.lastHand}</div></div>`:''}
-        ${r.notes?`<div><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+        ${r.notes?`<div style="margin-bottom:10px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+        <div style="margin-top:8px"><button class="btn btn-sm btn-gold" onclick="event.stopPropagation();editLive(${r.id})">Edit</button></div>
       </div>`;
     container.appendChild(div);
   });
@@ -524,7 +606,8 @@ function renderOnline() {
       <div class="record-detail" id="detail-${r.id}">
         ${tlist?`<div style="margin-bottom:10px">${tlist}</div>`:''}
         <div class="detail-scores">${dscores}</div>
-        ${r.notes?`<div style="margin-top:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+        ${r.notes?`<div style="margin-bottom:10px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
+        <div style="margin-top:8px"><button class="btn btn-sm btn-gold" onclick="event.stopPropagation();editOnline(${r.id})">Edit</button></div>
       </div>`;
     container.appendChild(div);
   });
