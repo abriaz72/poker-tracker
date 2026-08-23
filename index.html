@@ -159,6 +159,9 @@
   .field-table td { font-size: 0.78rem; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text2); }
   .field-table tr:last-child td { border-bottom: none; }
 
+  .day-section { background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--gold2); padding: 14px 16px; margin-bottom: 10px; }
+  .day-section-title { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+
   @media (max-width: 600px) {
     .pl-grid { grid-template-columns: 1fr; }
     .detail-scores { grid-template-columns: repeat(2, 1fr); }
@@ -202,11 +205,15 @@
         <div class="form-group"><label>Entry (£)</label><input type="number" id="l-entry" placeholder="165"></div>
         <div class="form-group"><label>Fee (£)</label><input type="number" id="l-fee" placeholder="15"></div>
         <div class="form-group"><label>Bullets</label><input type="number" id="l-bullets" value="1" min="1"></div>
-        <div class="form-group"><label>Runners</label><input type="number" id="l-runners" placeholder="e.g. 80"></div>
-        <div class="form-group"><label>Result</label><select id="l-result"><option value="bust">Bust</option><option value="cash">Cash</option></select></div>
+        <div class="form-group"><label>Multi-Day Event</label><select id="l-multiday" onchange="toggleMultiDay()"><option value="no">No</option><option value="yes">Yes</option></select></div>
+        <div class="form-group" id="l-days-group" style="display:none"><label>Number of Days</label><select id="l-days" onchange="buildDayFields()"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div>
+        <div class="form-group"><label>Day 1 Flight Size</label><input type="number" id="l-runners" placeholder="e.g. 80"></div>
+        <div class="form-group" id="l-totalrunners-group"><label>Total Field Size</label><input type="number" id="l-totalrunners" placeholder="All flights combined"></div>
+        <div class="form-group"><label>Result</label><select id="l-result"><option value="">In Progress</option><option value="bust">Bust (no cash)</option><option value="cash">Cash</option></select></div>
         <div class="form-group"><label>Finish Position</label><input type="text" id="l-position" placeholder="e.g. 10th"></div>
         <div class="form-group"><label>Prize (£)</label><input type="number" id="l-prize" value="0"></div>
       </div>
+      <div id="l-day-fields"></div>
       <div class="scoring-section">
         <div class="scoring-title">Session Quality — score each 1 to 4</div>
         <div class="score-grid" id="live-scores"></div>
@@ -413,6 +420,75 @@ function checkOnlineScoring() {
   document.getElementById('online-scoring-section').style.display = hasTournament ? 'block' : 'none';
 }
 
+// ── MULTI DAY ─────────────────────────────────────────────────────────────────
+function toggleMultiDay() {
+  const isMulti = document.getElementById('l-multiday').value === 'yes';
+  document.getElementById('l-days-group').style.display = isMulti ? 'block' : 'none';
+  document.getElementById('l-totalrunners-group').style.display = isMulti ? 'block' : 'none';
+  if (isMulti) {
+    buildDayFields();
+    // update result options for multi-day
+    updateResultOptions(true);
+  } else {
+    document.getElementById('l-day-fields').innerHTML = '';
+    updateResultOptions(false);
+  }
+}
+
+function updateResultOptions(isMulti) {
+  const sel = document.getElementById('l-result');
+  sel.innerHTML = '';
+  if (isMulti) {
+    [
+      ['', 'In Progress'],
+      ['bust_d1', 'Busted Day 1 (no cash)'],
+      ['bust_d2_nocash', 'Busted Day 2 (no cash)'],
+      ['bust_d2_cash', 'Busted Day 2 (cashed)'],
+      ['bust_d3_nocash', 'Busted Day 3 (no cash)'],
+      ['bust_d3_cash', 'Busted Day 3 (cashed)'],
+      ['bust_d4_nocash', 'Busted Day 4 (no cash)'],
+      ['bust_d4_cash', 'Busted Day 4 (cashed)'],
+      ['final_table', 'Final Table'],
+      ['winner', 'Winner']
+    ].forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); });
+  } else {
+    [['', 'In Progress'], ['bust', 'Bust (no cash)'], ['cash', 'Cash'], ['final_table', 'Final Table'], ['winner', 'Winner']].forEach(([v, t]) => {
+      const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o);
+    });
+  }
+}
+
+function buildDayFields() {
+  const days = parseInt(document.getElementById('l-days').value) || 1;
+  const container = document.getElementById('l-day-fields');
+  // preserve existing values
+  const existing = {};
+  container.querySelectorAll('.day-section').forEach(s => {
+    const d = s.dataset.day;
+    existing[d] = { stack: s.querySelector('.day-stack')?.value || '', notes: s.querySelector('.day-notes')?.value || '' };
+  });
+  container.innerHTML = '';
+  for (let i = 1; i <= days; i++) {
+    const div = document.createElement('div');
+    div.className = 'day-section'; div.dataset.day = i;
+    div.innerHTML = `
+      <div class="day-section-title">Day ${i}</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Closing Stack</label><input type="text" class="day-stack" placeholder="e.g. 45,000 or Bust" value="${existing[i]?.stack||''}"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label>Day ${i} Notes</label><textarea class="day-notes" placeholder="How did day ${i} go...">${existing[i]?.notes||''}</textarea></div>`;
+    container.appendChild(div);
+  }
+}
+
+function getDayData() {
+  const days = [];
+  document.querySelectorAll('.day-section').forEach(s => {
+    days.push({ day: parseInt(s.dataset.day), stack: s.querySelector('.day-stack')?.value || '', notes: s.querySelector('.day-notes')?.value || '' });
+  });
+  return days;
+}
+
 // ── EDIT LIVE ─────────────────────────────────────────────────────────────────
 function editLive(id) {
   const r = liveData.find(x => x.id === id);
@@ -424,7 +500,26 @@ function editLive(id) {
   document.getElementById('l-fee').value = r.fee;
   document.getElementById('l-bullets').value = r.bullets;
   document.getElementById('l-runners').value = r.runners || '';
-  document.getElementById('l-result').value = r.result;
+  document.getElementById('l-totalrunners').value = r.totalRunners || '';
+  const isMulti = r.multiDay === 'yes';
+  document.getElementById('l-multiday').value = isMulti ? 'yes' : 'no';
+  document.getElementById('l-days-group').style.display = isMulti ? 'block' : 'none';
+  document.getElementById('l-totalrunners-group').style.display = isMulti ? 'block' : 'none';
+  updateResultOptions(isMulti);
+  if (isMulti && r.numDays) {
+    document.getElementById('l-days').value = r.numDays;
+    buildDayFields();
+    if (r.dayData) {
+      document.querySelectorAll('.day-section').forEach(s => {
+        const d = parseInt(s.dataset.day);
+        const dd = r.dayData.find(x => x.day === d);
+        if (dd) { s.querySelector('.day-stack').value = dd.stack || ''; s.querySelector('.day-notes').value = dd.notes || ''; }
+      });
+    }
+  } else {
+    document.getElementById('l-day-fields').innerHTML = '';
+  }
+  document.getElementById('l-result').value = r.result || '';
   document.getElementById('l-position').value = r.position || '';
   document.getElementById('l-prize').value = r.prize;
   document.getElementById('l-lasthand').value = r.lastHand || '';
@@ -444,13 +539,18 @@ function saveLive() {
   const bullets = parseInt(document.getElementById('l-bullets').value)||1;
   const prize = parseFloat(document.getElementById('l-prize').value)||0;
   const result = document.getElementById('l-result').value;
-  const net = prize - (entry+fee)*bullets;
+  const isMulti = document.getElementById('l-multiday').value === 'yes';
+  const net = result ? prize - (entry+fee)*bullets : -((entry+fee)*bullets);
   const record = {
     id: editingLiveId || Date.now(),
     date: document.getElementById('l-date').value,
     name: document.getElementById('l-name').value||'Unnamed',
     entry, fee, bullets, prize, result,
+    multiDay: document.getElementById('l-multiday').value,
+    numDays: isMulti ? document.getElementById('l-days').value : null,
+    dayData: isMulti ? getDayData() : [],
     runners: parseInt(document.getElementById('l-runners').value)||0,
+    totalRunners: parseInt(document.getElementById('l-totalrunners').value)||0,
     position: document.getElementById('l-position').value,
     net, scores: {...liveScores}, totalScore: totalScore(liveScores),
     lastHand: document.getElementById('l-lasthand').value,
@@ -467,8 +567,14 @@ function saveLive() {
   document.getElementById('live-form').classList.remove('open');
   document.getElementById('live-form-title').textContent = 'New Tournament';
   document.getElementById('live-save-btn').textContent = 'Save';
+  document.getElementById('l-multiday').value = 'no';
+  document.getElementById('l-days-group').style.display = 'none';
+  document.getElementById('l-totalrunners-group').style.display = 'none';
+  document.getElementById('l-day-fields').innerHTML = '';
+  updateResultOptions(false);
   ['l-name','l-entry','l-fee','l-position','l-lasthand','l-notes'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('l-bullets').value=1; document.getElementById('l-prize').value=0; document.getElementById('l-runners').value='';
+  document.getElementById('l-bullets').value=1; document.getElementById('l-prize').value=0;
+  document.getElementById('l-runners').value=''; document.getElementById('l-totalrunners').value='';
   renderLive();
 }
 
@@ -551,20 +657,21 @@ function renderLive() {
   container.innerHTML = '';
   liveData.forEach(r => {
     const div = document.createElement('div');
-    div.className = `record ${r.result}`;
+    div.className = `record ${isCash(r)?'cash':''}`;
     const netClass = r.net>=0?'pos':'neg';
     const netStr = (r.net>=0?'+':'')+`£${Math.abs(r.net).toFixed(0)}`;
     const pips = CATEGORIES.map(cat => { const s=r.scores[cat.id]||0; return `<div class="score-pip"><div class="score-pip-fill" style="width:${(s/4)*100}%"></div></div>`; }).join('');
     const dscores = CATEGORIES.map(cat => `<div class="detail-score"><div class="detail-score-name">${cat.name}</div><div class="detail-score-val">${r.scores[cat.id]||'—'}</div></div>`).join('');
     div.innerHTML = `
       <div class="record-header" onclick="toggleDetail(${r.id})">
-        <div><div class="record-name">${r.name}</div><div class="record-meta">${fmt(r.date)} · £${r.entry}+£${r.fee} · ${r.bullets} bullet${r.bullets>1?'s':''} · ${r.runners?r.runners+' runners · ':''} ${r.result==='cash'?`Cash — ${r.position}`:'Bust'}</div></div>
+        <div><div class="record-name">${r.name}</div><div class="record-meta">${fmt(r.date)} · £${r.entry}+£${r.fee} · ${r.bullets} bullet${r.bullets>1?'s':''} · ${r.runners?r.runners+' flight':''} ${r.totalRunners?'/ '+r.totalRunners+' total':''} · ${r.multiDay==='yes'?`Multi-day (${r.numDays} days) · `:''}${resultLabel(r.result)}${r.position?' — '+r.position:''}</div></div>
         <div class="record-right"><div class="record-net ${netClass}">${netStr}</div><div class="record-score">${r.totalScore?r.totalScore+'/24':'—'}</div></div>
       </div>
       <div class="record-scores-bar">${pips}</div>
       <div class="record-detail" id="detail-${r.id}">
         <div class="detail-scores">${dscores}</div>
         ${r.lastHand?`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Last Hand</div><div class="detail-notes">${r.lastHand}</div></div>`:''}
+        ${r.dayData&&r.dayData.length?r.dayData.map(d=>`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--gold2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Day ${d.day}${d.stack?' · '+d.stack:''}</div>${d.notes?`<div class="detail-notes">${d.notes}</div>`:''}</div>`).join(''):''}
         ${r.notes?`<div style="margin-bottom:10px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
         <div style="margin-top:8px"><button class="btn btn-sm btn-gold" onclick="event.stopPropagation();editLive(${r.id})">Edit</button></div>
       </div>`;
@@ -573,7 +680,7 @@ function renderLive() {
   updateLiveStats();
 }
 function updateLiveStats() {
-  const n=liveData.length, c=liveData.filter(r=>r.result==='cash').length;
+  const n=liveData.length, c=liveData.filter(r=>isCash(r)).length;
   const net=liveData.reduce((a,r)=>a+r.net,0);
   const scored=liveData.filter(r=>r.totalScore>0);
   const avg=scored.length?(scored.reduce((a,r)=>a+r.totalScore,0)/scored.length).toFixed(1):'—';
@@ -766,10 +873,10 @@ function renderPL() {
   // field size breakdown
   const brackets=[{label:'Small (<100)',min:0,max:99},{label:'Medium (100–500)',min:100,max:500},{label:'Large (500+)',min:501,max:Infinity}];
   const fieldRows = brackets.map(b=>{
-    const subset=lf.filter(r=>r.runners>=b.min&&r.runners<=b.max&&r.runners>0);
+    const subset=lf.filter(r=>{const runners=(r.totalRunners||r.runners||0); return runners>=b.min&&runners<=b.max&&runners>0;});
     if(!subset.length) return null;
     const net=subset.reduce((a,r)=>a+r.net,0);
-    const c=subset.filter(r=>r.result==='cash').length;
+    const c=subset.filter(r=>isCash(r)).length;
     return `<tr><td>${b.label}</td><td>${subset.length}</td><td>${c} (${subset.length?Math.round((c/subset.length)*100):0}%)</td><td style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}&pound;${Math.abs(net).toFixed(0)}</td></tr>`;
   }).filter(Boolean).join('');
 
@@ -867,6 +974,12 @@ function drawPLChart(canvasId, records, symbol, lineColor) {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
+function resultLabel(r) {
+  const map = {'':'In Progress','bust':'Bust','cash':'Cash','bust_d1':'Bust Day 1','bust_d2_nocash':'Bust Day 2 (no cash)','bust_d2_cash':'Bust Day 2 (cashed)','bust_d3_nocash':'Bust Day 3 (no cash)','bust_d3_cash':'Bust Day 3 (cashed)','bust_d4_nocash':'Bust Day 4 (no cash)','bust_d4_cash':'Bust Day 4 (cashed)','final_table':'Final Table','winner':'Winner'};
+  return map[r] || r || 'In Progress';
+}
+function isCash(r) { return ['cash','bust_d2_cash','bust_d3_cash','bust_d4_cash','final_table','winner'].includes(r.result); }
+
 function fmt(d) { if(!d) return '—'; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
 function fmtShort(d) { if(!d) return ''; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
 
