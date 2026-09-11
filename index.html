@@ -176,7 +176,6 @@
 <nav class="nav">
   <div class="nav-brand">Poker Log</div>
   <div class="nav-tab active" onclick="switchView('live', this)">Live</div>
-  <div class="nav-tab" onclick="switchView('online', this)">Online</div>
   <div class="nav-tab" onclick="switchView('quality', this)">Quality</div>
   <div class="nav-tab" onclick="switchView('pl', this)">P&L</div>
 </nav>
@@ -218,7 +217,7 @@
         <div class="scoring-title">Session Quality — score each 1 to 4</div>
         <div class="score-grid" id="live-scores"></div>
       </div>
-      <div class="form-group" style="margin-top:12px"><label>Last Hand</label><textarea id="l-lasthand" placeholder="How did it end..."></textarea></div>
+      <div class="form-group" style="margin-top:12px"><label>Key Hands</label><textarea id="l-lasthand" placeholder="Hands worth noting or for further analysis..."></textarea></div>
       <div class="form-group" style="margin-top:8px"><label>Notes</label><textarea id="l-notes" placeholder="General thoughts..."></textarea></div>
       <div class="form-actions">
         <button class="btn" onclick="toggleForm('live-form');editingLiveId=null;document.getElementById('live-form-title').textContent='New Tournament';document.getElementById('live-save-btn').textContent='Save'">Cancel</button>
@@ -229,44 +228,6 @@
     <div class="records" id="live-records"><div class="empty-state">No tournaments logged yet</div></div>
   </div>
 
-  <!-- ══ ONLINE ══ -->
-  <div class="view" id="view-online">
-    <div class="section-header">
-      <div><div class="section-title">Online Sessions</div><div class="section-subtitle">All figures in $</div></div>
-      <button class="btn btn-gold" onclick="toggleForm('online-form')">+ Add</button>
-    </div>
-    <div class="stats-bar">
-      <div class="stat"><div class="stat-label">Sessions</div><div class="stat-value gold" id="os-count">0</div></div>
-      <div class="stat"><div class="stat-label">Net</div><div class="stat-value" id="os-net">$0</div></div>
-      <div class="stat"><div class="stat-label">Best Session</div><div class="stat-value pos" id="os-best">—</div></div>
-      <div class="stat"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="os-score">—</div></div>
-    </div>
-
-    <div class="form-panel" id="online-form">
-      <div class="form-title" id="online-form-title">New Session</div>
-      <div class="form-grid">
-        <div class="form-group"><label>Date</label><input type="date" id="o-date"></div>
-        <div class="form-group"><label>Starting Balance ($)</label><input type="number" id="o-start" placeholder="0.00"></div>
-        <div class="form-group"><label>Closing Balance ($)</label><input type="number" id="o-end" placeholder="0.00"></div>
-      </div>
-      <div style="margin:12px 0 8px">
-        <label style="display:block;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Tournaments Played</label>
-        <div class="online-tournaments" id="online-tourneys"></div>
-        <button class="btn btn-sm" onclick="addOnlineTourney()" style="margin-top:8px">+ Add Tournament</button>
-      </div>
-      <div class="scoring-section" id="online-scoring-section" style="display:none">
-        <div class="scoring-title">Session Quality — score each 1 to 4 (tournaments only)</div>
-        <div class="score-grid" id="online-scores"></div>
-      </div>
-      <div class="form-group" style="margin-top:12px"><label>Notes</label><textarea id="o-notes" placeholder="General thoughts..."></textarea></div>
-      <div class="form-actions">
-        <button class="btn" onclick="toggleForm('online-form');editingOnlineId=null;document.getElementById('online-form-title').textContent='New Session';document.getElementById('online-save-btn').textContent='Save'">Cancel</button>
-        <button class="btn btn-gold" id="online-save-btn" onclick="saveOnline()">Save</button>
-      </div>
-    </div>
-
-    <div class="records" id="online-records"><div class="empty-state">No sessions logged yet</div></div>
-  </div>
 
   <!-- ══ QUALITY ══ -->
   <div class="view" id="view-quality">
@@ -274,11 +235,6 @@
       <div><div class="section-title">Quality Analysis</div></div>
     </div>
     <div class="filter-bar">
-      <span class="filter-label">View</span>
-      <button class="filter-btn active" onclick="setQFilter('source','both',this)">Both</button>
-      <button class="filter-btn" onclick="setQFilter('source','live',this)">Live</button>
-      <button class="filter-btn" onclick="setQFilter('source','online',this)">Online</button>
-      <div class="filter-sep"></div>
       <span class="filter-label">Period</span>
       <button class="filter-btn active" onclick="setQFilter('period','all',this)">All Time</button>
       <button class="filter-btn" onclick="setQFilter('period','year',this)">Year</button>
@@ -670,7 +626,7 @@ function renderLive() {
       <div class="record-scores-bar">${pips}</div>
       <div class="record-detail" id="detail-${r.id}">
         <div class="detail-scores">${dscores}</div>
-        ${r.lastHand?`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Last Hand</div><div class="detail-notes">${r.lastHand}</div></div>`:''}
+        ${r.lastHand?`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Key Hands</div><div class="detail-notes">${r.lastHand}</div></div>`:''}
         ${r.dayData&&r.dayData.length?r.dayData.map(d=>`<div style="margin-bottom:8px"><div style="font-size:0.62rem;color:var(--gold2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Day ${d.day}${d.stack?' · '+d.stack:''}</div>${d.notes?`<div class="detail-notes">${d.notes}</div>`:''}</div>`).join(''):''}
         ${r.notes?`<div style="margin-bottom:10px"><div style="font-size:0.62rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">Notes</div><div class="detail-notes">${r.notes}</div></div>`:''}
         <div style="margin-top:8px"><button class="btn btn-sm btn-gold" onclick="event.stopPropagation();editLive(${r.id})">Edit</button></div>
@@ -736,7 +692,7 @@ function toggleDetail(id) { const el=document.getElementById(`detail-${id}`); if
 // ── FILTERS ───────────────────────────────────────────────────────────────────
 function setQFilter(key, val, el) {
   qFilters[key]=val;
-  el.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b => { if(b.onclick?.toString().includes(`'${key}'`)) b.classList.remove('active'); });
+  el.closest('.filter-bar').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   renderQuality();
 }
@@ -759,116 +715,53 @@ function filterByPeriod(arr, dateKey, period) {
 // ── QUALITY ───────────────────────────────────────────────────────────────────
 function renderQuality() {
   const container = document.getElementById('quality-content');
-  let liveFiltered = filterByPeriod(liveData, 'date', qFilters.period).filter(r=>r.totalScore>0);
-  let onlineFiltered = filterByPeriod(onlineData, 'date', qFilters.period).filter(r=>r.totalScore!=null);
+  let filtered = filterByPeriod(liveData, 'date', qFilters.period).filter(r=>r.totalScore>0);
 
-  const showLive = qFilters.source!=='online';
-  const showOnline = qFilters.source!=='live';
-
-  if ((!showLive||!liveFiltered.length) && (!showOnline||!onlineFiltered.length)) {
+  if (!filtered.length) {
     container.innerHTML = '<div class="empty-state">No scored sessions in this period</div>'; return;
   }
 
-  let html = '';
+  const avgs = CATEGORIES.map(cat => {
+    const vals = filtered.map(r=>r.scores[cat.id]).filter(Boolean);
+    return { cat, avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0 };
+  });
+  const sorted = [...avgs].sort((a,b)=>b.avg-a.avg);
+  const best = sorted[0], worst = sorted[sorted.length-1];
 
-  function buildQSection(label, records) {
-    if (!records.length) return '';
-    const avgs = CATEGORIES.map(cat => {
-      const vals = records.map(r=>r.scores[cat.id]).filter(Boolean);
-      return { cat, avg: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0 };
-    });
-    const sorted = [...avgs].sort((a,b)=>b.avg-a.avg);
-    const best = sorted[0], worst = sorted[sorted.length-1];
+  const bars = avgs.map(({cat,avg}) => `
+    <div class="cat-bar">
+      <div class="cat-bar-name">${cat.name}</div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(avg/4)*100}%"></div></div>
+      <div class="cat-bar-val">${avg.toFixed(1)}</div>
+    </div>`).join('');
 
-    const bars = avgs.map(({cat,avg}) => `
-      <div class="cat-bar">
-        <div class="cat-bar-name">${cat.name}</div>
-        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(avg/4)*100}%"></div></div>
-        <div class="cat-bar-val">${avg.toFixed(1)}</div>
-      </div>`).join('');
+  const recent = [...filtered].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
 
-    // trend: last 6 scored sessions
-    const recent = [...records].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
-    const trendLines = CATEGORIES.map(cat => {
-      const pts = recent.map((r,i) => ({ x: i, y: r.scores[cat.id]||0 }));
-      return { cat, pts };
-    });
+  container.innerHTML = `
+    <div class="quality-section">
+      <div class="cat-bars">${bars}</div>
+      <div class="best-worst">
+        <div class="bw-card"><div class="bw-label">Strongest Area</div><div class="bw-name">${best.cat.name}</div><div class="bw-score pos">${best.avg.toFixed(1)} / 4</div></div>
+        <div class="bw-card"><div class="bw-label">Needs Most Work</div><div class="bw-name">${worst.cat.name}</div><div class="bw-score neg">${worst.avg.toFixed(1)} / 4</div></div>
+      </div>
+      ${recent.length>1 ? `<div class="chart-wrap" style="margin-top:16px"><div class="chart-title">Score Trend — last ${recent.length} sessions</div><canvas id="trend-live"></canvas></div>` : ''}
+    </div>`;
 
-    return `
-      <div class="quality-section">
-        <div class="quality-section-title">${label}</div>
-        <div class="cat-bars">${bars}</div>
-        <div class="best-worst">
-          <div class="bw-card"><div class="bw-label">Strongest Area</div><div class="bw-name">${best.cat.name}</div><div class="bw-score pos">${best.avg.toFixed(1)} / 4</div></div>
-          <div class="bw-card"><div class="bw-label">Needs Most Work</div><div class="bw-name">${worst.cat.name}</div><div class="bw-score neg">${worst.avg.toFixed(1)} / 4</div></div>
-        </div>
-        ${recent.length>1 ? `<div class="chart-wrap" style="margin-top:16px"><div class="chart-title">Score Trend — last ${recent.length} sessions</div><canvas id="trend-${label.replace(/\s/g,'')}"></canvas></div>` : ''}
-      </div>`;
+  if (recent.length > 1) {
+    setTimeout(() => drawTrend('trend-live', recent), 50);
   }
-
-  if (showLive && liveFiltered.length) html += buildQSection('Live', liveFiltered);
-  if (showOnline && onlineFiltered.length) html += buildQSection('Online', onlineFiltered);
-  container.innerHTML = html;
-
-  // draw trend charts
-  function drawTrend(canvasId, records) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const recent = [...records].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-8);
-    if (recent.length < 2) return;
-    const dpr = window.devicePixelRatio||1;
-    const W = canvas.parentElement.clientWidth - 32;
-    const H = 200;
-    canvas.width = W*dpr; canvas.height = H*dpr;
-    canvas.style.width = W+'px'; canvas.style.height = H+'px';
-    const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
-    const pad = {l:30,r:16,t:16,b:24};
-    const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
-    ctx.fillStyle='#141414'; ctx.fillRect(0,0,W,H);
-    // grid
-    ctx.strokeStyle='#222'; ctx.lineWidth=1;
-    [1,2,3,4].forEach(y => {
-      const py = pad.t + iH - ((y-1)/3)*iH;
-      ctx.beginPath(); ctx.moveTo(pad.l,py); ctx.lineTo(W-pad.r,py); ctx.stroke();
-      ctx.fillStyle='#444'; ctx.font='9px sans-serif'; ctx.fillText(y, pad.l-18, py+3);
-    });
-    const colors=['#c9a84c','#4a9e6b','#4a7ec4','#c45a4a','#8a6ec4','#c47a4a'];
-    CATEGORIES.forEach((cat,ci) => {
-      const pts = recent.map((r,i)=>({ x: pad.l + (i/(recent.length-1))*iW, y: pad.t + iH - ((( r.scores[cat.id]||1)-1)/3)*iH }));
-      ctx.strokeStyle=colors[ci]; ctx.lineWidth=1.5; ctx.setLineDash([]);
-      ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
-      pts.forEach(p=>{ ctx.fillStyle=colors[ci]; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); });
-    });
-    // x labels
-    ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-    recent.forEach((r,i)=>{ const x=pad.l+(i/(recent.length-1))*iW; ctx.fillText(fmtShort(r.date),x,H-6); });
-    // legend
-    ctx.textAlign='left';
-    CATEGORIES.forEach((cat,ci)=>{
-      const lx=pad.l+(ci%3)*(iW/3), ly=H-12+(Math.floor(ci/3)*0);
-      ctx.fillStyle=colors[ci]; ctx.fillRect(lx,pad.t+iH+4,8,6);
-    });
-  }
-
-  setTimeout(()=>{
-    if (showLive && liveFiltered.length>1) drawTrend('trend-Live', liveFiltered);
-    if (showOnline && onlineFiltered.length>1) drawTrend('trend-Online', onlineFiltered);
-  }, 50);
 }
 
 // ── P&L ───────────────────────────────────────────────────────────────────────
 function renderPL() {
   const container = document.getElementById('pl-content');
   const lf = filterByPeriod(liveData,'date',plFilters.period);
-  const of = filterByPeriod(onlineData,'date',plFilters.period);
 
   const lNet=lf.reduce((a,r)=>a+r.net,0);
   const lIn=lf.reduce((a,r)=>a+(r.entry+r.fee)*r.bullets,0);
   const lOut=lf.reduce((a,r)=>a+r.prize,0);
-  const lCash=lf.filter(r=>r.result==='cash').length;
+  const lCash=lf.filter(r=>isCash(r)).length;
   const lCashRate=lf.length?Math.round((lCash/lf.length)*100):0;
-
-  const oNet=of.reduce((a,r)=>a+r.net,0);
 
   // field size breakdown
   const brackets=[{label:'Small (<100)',min:0,max:99},{label:'Medium (100–500)',min:100,max:500},{label:'Large (500+)',min:501,max:Infinity}];
@@ -882,7 +775,7 @@ function renderPL() {
 
   container.innerHTML = `
     <div class="pl-grid">
-      <div class="pl-card">
+      <div class="pl-card" style="grid-column:1/-1">
         <div class="pl-card-title">Live — £</div>
         <div class="pl-stat"><span class="pl-stat-label">Tournaments</span><span class="pl-stat-val gold">${lf.length}</span></div>
         <div class="pl-stat"><span class="pl-stat-label">Total Invested</span><span class="pl-stat-val neg">-£${lIn.toFixed(0)}</span></div>
@@ -890,30 +783,21 @@ function renderPL() {
         <div class="pl-stat"><span class="pl-stat-label">Net</span><span class="pl-stat-val ${lNet>=0?'pos':'neg'}">${lNet>=0?'+':''}&pound;${Math.abs(lNet).toFixed(0)}</span></div>
         <div class="pl-stat"><span class="pl-stat-label">Cash Rate</span><span class="pl-stat-val gold">${lf.length?lCashRate+'%':'—'}</span></div>
       </div>
-      <div class="pl-card">
-        <div class="pl-card-title">Online — $</div>
-        <div class="pl-stat"><span class="pl-stat-label">Sessions</span><span class="pl-stat-val gold">${of.length}</span></div>
-        <div class="pl-stat"><span class="pl-stat-label">Net</span><span class="pl-stat-val ${oNet>=0?'pos':'neg'}">${oNet>=0?'+$':'-$'}${Math.abs(oNet).toFixed(2)}</span></div>
-        <div class="pl-stat"><span class="pl-stat-label">Best Session</span><span class="pl-stat-val pos">${of.length?(()=>{const b=Math.max(...of.map(r=>r.net));return(b>=0?'+$':'-$')+Math.abs(b).toFixed(2);})():'—'}</span></div>
-        <div class="pl-stat"><span class="pl-stat-label">Worst Session</span><span class="pl-stat-val neg">${of.length?(()=>{const w=Math.min(...of.map(r=>r.net));return(w>=0?'+$':'-$')+Math.abs(w).toFixed(2);})():'—'}</span></div>
-      </div>
     </div>
 
     ${fieldRows ? `<div class="pl-card" style="margin-bottom:16px">
-      <div class="pl-card-title">Live — Performance by Field Size</div>
+      <div class="pl-card-title">Performance by Field Size</div>
       <table class="field-table">
         <thead><tr><th>Field Size</th><th>Played</th><th>Cashes</th><th>Net</th></tr></thead>
         <tbody>${fieldRows}</tbody>
       </table>
     </div>` : ''}
 
-    <div class="chart-wrap"><div class="chart-title">Live — Running P&L (£)</div><canvas id="pl-live-chart"></canvas></div>
-    <div class="chart-wrap"><div class="chart-title">Online — Running P&L ($)</div><canvas id="pl-online-chart"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Running P&L (£)</div><canvas id="pl-live-chart"></canvas></div>
   `;
 
   setTimeout(()=>{
     drawPLChart('pl-live-chart', [...lf].sort((a,b)=>new Date(a.date)-new Date(b.date)), '£', 'var(--gold)');
-    drawPLChart('pl-online-chart', [...of].sort((a,b)=>new Date(a.date)-new Date(b.date)), '$', 'var(--blue)');
   }, 50);
 }
 
@@ -986,9 +870,8 @@ function fmtShort(d) { if(!d) return ''; const dt=new Date(d+'T12:00:00'); retur
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadData();
 buildScoreGrid('live-scores', liveScores);
-buildScoreGrid('online-scores', onlineScores);
+updateResultOptions(false);
 renderLive();
-renderOnline();
 </script>
 </body>
 </html>
