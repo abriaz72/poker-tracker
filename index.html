@@ -46,7 +46,8 @@
   .btn-sm { padding: 5px 10px; font-size: 0.68rem; }
 
   .stats-bar { display: flex; gap: 1px; margin-bottom: 24px; background: var(--border); flex-wrap: wrap; }
-  .stat { flex: 1; min-width: 100px; background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .stat { flex: 1; min-width: 80px; background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .stat-narrow { flex: 0.6; min-width: 60px; }
   .stat-label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
   .stat-value { font-family: var(--font-display); font-size: 1rem; }
   .stat-value.pos { color: var(--green); }
@@ -189,11 +190,14 @@
       <button class="btn btn-gold" onclick="toggleForm('live-form')">+ Add</button>
     </div>
     <div class="stats-bar">
-      <div class="stat"><div class="stat-label">Tournaments</div><div class="stat-value gold" id="ls-count">0</div></div>
-      <div class="stat"><div class="stat-label">Cashes</div><div class="stat-value pos" id="ls-cashes">0</div></div>
-      <div class="stat"><div class="stat-label">Cash Rate</div><div class="stat-value gold" id="ls-cashrate">—</div></div>
+      <div class="stat stat-narrow"><div class="stat-label">Played</div><div class="stat-value gold" id="ls-count">0</div></div>
+      <div class="stat stat-narrow"><div class="stat-label">Cashes</div><div class="stat-value pos" id="ls-cashes">0</div></div>
+      <div class="stat stat-narrow"><div class="stat-label">Cash %</div><div class="stat-value gold" id="ls-cashrate">—</div></div>
+      <div class="stat stat-narrow"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="ls-score">—</div></div>
       <div class="stat"><div class="stat-label">Net</div><div class="stat-value" id="ls-net">£0</div></div>
-      <div class="stat"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="ls-score">—</div></div>
+      <div class="stat"><div class="stat-label">Stakes</div><div class="stat-value neg" id="ls-stakes">£0</div></div>
+      <div class="stat"><div class="stat-label">Returns</div><div class="stat-value pos" id="ls-returns">£0</div></div>
+      <div class="stat"><div class="stat-label">ROI</div><div class="stat-value" id="ls-roi">—</div></div>
     </div>
 
     <div class="form-panel" id="live-form">
@@ -638,13 +642,21 @@ function renderLive() {
 function updateLiveStats() {
   const n=liveData.length, c=liveData.filter(r=>isCash(r)).length;
   const net=liveData.reduce((a,r)=>a+r.net,0);
+  const stakes=liveData.reduce((a,r)=>a+(r.entry+r.fee)*r.bullets,0);
+  const returns=liveData.reduce((a,r)=>a+r.prize,0);
+  const roi=stakes?((returns-stakes)/stakes*100):null;
   const scored=liveData.filter(r=>r.totalScore>0);
   const avg=scored.length?(scored.reduce((a,r)=>a+r.totalScore,0)/scored.length).toFixed(1):'—';
   document.getElementById('ls-count').textContent=n;
   document.getElementById('ls-cashes').textContent=c;
   document.getElementById('ls-cashrate').textContent=n?Math.round((c/n)*100)+'%':'—';
-  const nel=document.getElementById('ls-net'); nel.textContent=(net>=0?'+':'')+'£'+Math.abs(net).toFixed(0); nel.className='stat-value '+(net>=0?'pos':'neg');
   document.getElementById('ls-score').textContent=avg==='—'?'—':avg+'/24';
+  const nel=document.getElementById('ls-net'); nel.textContent=(net>=0?'+':'')+'£'+Math.abs(net).toFixed(0); nel.className='stat-value '+(net>=0?'pos':'neg');
+  document.getElementById('ls-stakes').textContent='£'+stakes.toFixed(0);
+  document.getElementById('ls-returns').textContent='£'+returns.toFixed(0);
+  const rel=document.getElementById('ls-roi');
+  rel.textContent=roi!=null?(roi>=0?'+':'')+roi.toFixed(1)+'%':'—';
+  rel.className='stat-value '+(roi==null?'gold':roi>=0?'pos':'neg');
 }
 
 // ── RENDER ONLINE ─────────────────────────────────────────────────────────────
@@ -782,6 +794,7 @@ function renderPL() {
         <div class="pl-stat"><span class="pl-stat-label">Total Returned</span><span class="pl-stat-val pos">+£${lOut.toFixed(0)}</span></div>
         <div class="pl-stat"><span class="pl-stat-label">Net</span><span class="pl-stat-val ${lNet>=0?'pos':'neg'}">${lNet>=0?'+':''}&pound;${Math.abs(lNet).toFixed(0)}</span></div>
         <div class="pl-stat"><span class="pl-stat-label">Cash Rate</span><span class="pl-stat-val gold">${lf.length?lCashRate+'%':'—'}</span></div>
+        <div class="pl-stat"><span class="pl-stat-label">ROI</span><span class="pl-stat-val ${lIn?(lNet>=0?'pos':'neg'):'gold'}">${lIn?(lNet>=0?'+':'')+((lNet/lIn)*100).toFixed(1)+'%':'—'}</span></div>
       </div>
     </div>
 
