@@ -193,7 +193,6 @@
       <div class="stat stat-narrow"><div class="stat-label">Played</div><div class="stat-value gold" id="ls-count">0</div></div>
       <div class="stat stat-narrow"><div class="stat-label">Cashes</div><div class="stat-value pos" id="ls-cashes">0</div></div>
       <div class="stat stat-narrow"><div class="stat-label">Cash %</div><div class="stat-value gold" id="ls-cashrate">—</div></div>
-      <div class="stat stat-narrow"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="ls-score">—</div></div>
       <div class="stat"><div class="stat-label">Net</div><div class="stat-value" id="ls-net">£0</div></div>
       <div class="stat"><div class="stat-label">Stakes</div><div class="stat-value neg" id="ls-stakes">£0</div></div>
       <div class="stat"><div class="stat-label">Returns</div><div class="stat-value pos" id="ls-returns">£0</div></div>
@@ -237,6 +236,12 @@
   <div class="view" id="view-quality">
     <div class="section-header">
       <div><div class="section-title">Quality Analysis</div></div>
+    </div>
+    <div class="stats-bar" style="margin-bottom:16px">
+      <div class="stat"><div class="stat-label">Scored Sessions</div><div class="stat-value gold" id="qs-count">0</div></div>
+      <div class="stat"><div class="stat-label">Avg Score</div><div class="stat-value gold" id="qs-score">—</div></div>
+      <div class="stat"><div class="stat-label">Best Session</div><div class="stat-value pos" id="qs-best">—</div></div>
+      <div class="stat"><div class="stat-label">Latest</div><div class="stat-value gold" id="qs-latest">—</div></div>
     </div>
     <div class="filter-bar">
       <span class="filter-label">Period</span>
@@ -646,11 +651,9 @@ function updateLiveStats() {
   const returns=liveData.reduce((a,r)=>a+r.prize,0);
   const roi=stakes?((returns-stakes)/stakes*100):null;
   const scored=liveData.filter(r=>r.totalScore>0);
-  const avg=scored.length?(scored.reduce((a,r)=>a+r.totalScore,0)/scored.length).toFixed(1):'—';
   document.getElementById('ls-count').textContent=n;
   document.getElementById('ls-cashes').textContent=c;
   document.getElementById('ls-cashrate').textContent=n?Math.round((c/n)*100)+'%':'—';
-  document.getElementById('ls-score').textContent=avg==='—'?'—':avg+'/24';
   const nel=document.getElementById('ls-net'); nel.textContent=(net>=0?'+':'')+'£'+Math.abs(net).toFixed(0); nel.className='stat-value '+(net>=0?'pos':'neg');
   document.getElementById('ls-stakes').textContent='£'+stakes.toFixed(0);
   document.getElementById('ls-returns').textContent='£'+returns.toFixed(0);
@@ -728,6 +731,15 @@ function filterByPeriod(arr, dateKey, period) {
 function renderQuality() {
   const container = document.getElementById('quality-content');
   let filtered = filterByPeriod(liveData, 'date', qFilters.period).filter(r=>r.totalScore>0);
+
+  // update stats bar
+  const avg = filtered.length ? (filtered.reduce((a,r)=>a+r.totalScore,0)/filtered.length).toFixed(1) : null;
+  const best = filtered.length ? Math.max(...filtered.map(r=>r.totalScore)) : null;
+  const latest = filtered.length ? [...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date))[0].totalScore : null;
+  document.getElementById('qs-count').textContent = filtered.length;
+  document.getElementById('qs-score').textContent = avg ? avg+'/24' : '—';
+  document.getElementById('qs-best').textContent = best ? best+'/24' : '—';
+  document.getElementById('qs-latest').textContent = latest ? latest+'/24' : '—';
 
   if (!filtered.length) {
     container.innerHTML = '<div class="empty-state">No scored sessions in this period</div>'; return;
