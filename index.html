@@ -141,6 +141,7 @@
   /* TREND CHART */
   .chart-wrap { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
   .chart-title { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+  .chart-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   canvas { width: 100% !important; max-height: 220px; }
 
   /* P&L TAB */
@@ -768,57 +769,85 @@ function renderQuality() {
         <div class="bw-card"><div class="bw-label">Strongest Area</div><div class="bw-name">${bestCat.cat.name}</div><div class="bw-score pos">${bestCat.avg.toFixed(1)} / 4</div></div>
         <div class="bw-card"><div class="bw-label">Needs Most Work</div><div class="bw-name">${worst.cat.name}</div><div class="bw-score neg">${worst.avg.toFixed(1)} / 4</div></div>
       </div>
-      ${recent.length>1 ? `<div class="chart-wrap" style="margin-top:16px"><div class="chart-title">Score Trend — last ${recent.length} sessions</div><canvas id="trend-live"></canvas></div>` : ''}
+      ${recent.length>1 ? `
+        <div class="chart-wrap" style="margin-top:16px">
+          <div class="chart-title">Total Score Trend</div>
+          <canvas id="trend-total"></canvas>
+        </div>
+        <div class="chart-wrap" style="margin-top:12px">
+          <div class="chart-title-row">
+            <span class="chart-title" style="margin:0">Category Trend</span>
+            <select id="cat-select" onchange="drawCategoryTrend()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:0.72rem;outline:none;">
+              ${CATEGORIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+          </div>
+          <canvas id="trend-category" style="margin-top:10px"></canvas>
+        </div>
+      ` : recent.length < 2 ? '<div style="color:var(--text3);font-size:0.75rem;padding:16px 0">Add at least 2 scored sessions to see trends</div>' : ''}
     </div>`;
 
   if (recent.length > 1) {
-    setTimeout(() => drawTrend('trend-live', recent), 50);
+    window._qualityRecent = recent;
+    setTimeout(() => {
+      drawTotalScoreTrend('trend-total', recent);
+      drawCategoryTrend();
+    }, 50);
   }
 }
 
-// ── DRAW TREND ────────────────────────────────────────────────────────────────
-function drawTrend(canvasId, records) {
+// ── DRAW CHARTS ───────────────────────────────────────────────────────────────
+function drawSingleLine(canvasId, records, getValue, minY, maxY, color, labelFn) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || records.length < 2) return;
   const dpr = window.devicePixelRatio||1;
   const W = canvas.parentElement.clientWidth - 32;
-  const H = 200;
+  const H = 180;
   canvas.width=W*dpr; canvas.height=H*dpr;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
-  const pad={l:30,r:16,t:16,b:40};
+  const pad={l:36,r:16,t:16,b:28};
   const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  const range = maxY-minY || 1;
   ctx.fillStyle='#141414'; ctx.fillRect(0,0,W,H);
-  // grid lines
+  // grid
   ctx.strokeStyle='#222'; ctx.lineWidth=1;
-  [1,2,3,4].forEach(y => {
-    const py=pad.t+iH-((y-1)/3)*iH;
+  const steps = minY===1 ? [1,2,3,4] : [Math.round(minY), Math.round((minY+maxY)/2), Math.round(maxY)];
+  steps.forEach(y => {
+    const py=pad.t+iH-((y-minY)/range)*iH;
     ctx.beginPath(); ctx.moveTo(pad.l,py); ctx.lineTo(W-pad.r,py); ctx.stroke();
     ctx.fillStyle='#444'; ctx.font='9px sans-serif'; ctx.textAlign='right';
-    ctx.fillText(y, pad.l-4, py+3);
+    ctx.fillText(labelFn?labelFn(y):y, pad.l-4, py+3);
   });
-  const colors=['#c9a84c','#4a9e6b','#4a7ec4','#c45a4a','#8a6ec4','#c47a4a'];
-  CATEGORIES.forEach((cat,ci) => {
-    const pts=records.map((r,i)=>({
-      x: pad.l+(i/(records.length-1))*iW,
-      y: pad.t+iH-(((r.scores[cat.id]||1)-1)/3)*iH
-    }));
-    ctx.strokeStyle=colors[ci]; ctx.lineWidth=1.5; ctx.setLineDash([]);
-    ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
-    pts.forEach(p=>{ ctx.fillStyle=colors[ci]; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); });
-  });
+  // fill
+  const pts=records.map((r,i)=>({ x:pad.l+(i/(records.length-1))*iW, y:pad.t+iH-((getValue(r)-minY)/range)*iH }));
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pad.t+iH);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x, pad.t+iH); ctx.closePath();
+  ctx.fillStyle=color+'22'; ctx.fill();
+  // line
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
+  // dots
+  pts.forEach(p=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,3.5,0,Math.PI*2); ctx.fill(); });
   // x labels
   ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-  records.forEach((r,i)=>{ const x=pad.l+(i/(records.length-1))*iW; ctx.fillText(fmtShort(r.date),x,H-24); });
-  // legend
-  ctx.textAlign='left';
-  CATEGORIES.forEach((cat,ci)=>{
-    const col=ci%3, row=Math.floor(ci/3);
-    const lx=pad.l+(col*(iW/3)), ly=H-14+(row*10);
-    ctx.fillStyle=colors[ci]; ctx.fillRect(lx,ly,8,5);
-    ctx.fillStyle='#555'; ctx.font='8px sans-serif';
-    ctx.fillText(cat.name, lx+10, ly+4);
-  });
+  records.forEach((r,i)=>{ ctx.fillText(fmtShort(r.date), pad.l+(i/(records.length-1))*iW, H-8); });
+}
+
+function drawTotalScoreTrend(canvasId, records) {
+  const scores = records.map(r=>r.totalScore);
+  const minY = Math.max(0, Math.min(...scores)-2);
+  const maxY = 24;
+  drawSingleLine(canvasId, records, r=>r.totalScore, minY, maxY, '#c9a84c', y=>y+'/24');
+}
+
+function drawCategoryTrend() {
+  const records = window._qualityRecent;
+  if (!records || records.length < 2) return;
+  const sel = document.getElementById('cat-select');
+  if (!sel) return;
+  const catId = sel.value;
+  drawSingleLine('trend-category', records, r=>r.scores[catId]||1, 1, 4, '#4a9e6b');
 }
 
 // ── P&L ───────────────────────────────────────────────────────────────────────
