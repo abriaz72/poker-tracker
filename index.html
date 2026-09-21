@@ -506,7 +506,7 @@ function saveLive() {
   const prize = parseFloat(document.getElementById('l-prize').value)||0;
   const result = document.getElementById('l-result').value;
   const isMulti = document.getElementById('l-multiday').value === 'yes';
-  const net = result ? prize - (entry+fee)*bullets : -((entry+fee)*bullets);
+  const net = prize - (entry+fee)*bullets;
   const record = {
     id: editingLiveId || Date.now(),
     date: document.getElementById('l-date').value,
